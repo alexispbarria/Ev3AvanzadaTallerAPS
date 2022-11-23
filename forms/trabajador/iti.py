@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter.font import BOLD
-from tkinter import ANCHOR, CENTER, W, ttk, messagebox
+from tkinter import ttk, messagebox
 import conexion
 import util.generic as utl
 from ..trabajador import form_trabajador as ft

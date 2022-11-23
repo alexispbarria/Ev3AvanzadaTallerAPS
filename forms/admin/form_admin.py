@@ -1,5 +1,3 @@
-from email.utils import parsedate_tz
-from textwrap import fill
 import tkinter as tk
 from tkinter.font import BOLD
 import util.generic as utl

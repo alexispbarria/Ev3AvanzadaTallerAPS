@@ -1,5 +1,3 @@
-from cgitb import text
-from pydoc import doc
 import tkinter as tk
 from tkinter.font import BOLD
 import util.generic as utl

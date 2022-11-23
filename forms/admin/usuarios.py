@@ -1,8 +1,6 @@
-from email.utils import parsedate_tz
-from textwrap import fill
 import tkinter as tk
 from tkinter.font import BOLD
-from tkinter import ANCHOR, CENTER, W, ttk, messagebox
+from tkinter import ttk, messagebox
 import conexion
 import util.generic as utl
 import bcrypt
@@ -23,7 +21,7 @@ class User:
         self.ventana.resizable(width=0, height=0)
         #frame para el título.
         frame_form = tk.Frame(self.ventana, bd=0, relief=tk.SOLID, bg="#fcfcfc")
-        frame_form.pack(expand=tk.YES, fill=tk.BOTH)
+        frame_form.pack(expand=tk.NO, fill=tk.BOTH)
 
         #Frame superior, ocupado por el texto Menú administrador.
         frame_form_top = tk.Frame(frame_form, height=20, bd=0, relief=tk.SOLID, bg='black')
@@ -35,9 +33,12 @@ class User:
         frame_form_access = tk.Frame(frame_form, height= 50, bd=0, relief=tk.SOLID, bg ='#fcfcfc')
         frame_form_access.pack(side="bottom", expand=tk.YES, fill=tk.NONE)
 
+        logo = utl.leer_imagen("./imagenes/logo.png", (200, 200))
+        labelLogo = tk.Label(frame_form_access, image=logo, bg='#fcfcfc')
+        labelLogo.pack(fill=tk.X, padx=20, pady=10)
 
         listado = ttk.Treeview(frame_form_access, columns=('#0', '#1'))
-        listado.grid(row=1, column=0, columnspan=2)
+        listado.pack(fill=tk.X, padx=20, pady=5)
 
         style = ttk.Style()
         style.theme_use('clam')
@@ -53,7 +54,7 @@ class User:
 
         #Volver al menú anterior
         menuAnterior = tk.Button(frame_form_access, text="Volver al Menú Anterior", font=('Times', 15, BOLD),fg='#fcfcfc', bg="#3a7ff6", command=self.abrirGestionUsuarios)
-        menuAnterior.grid(row=2, column=0, columnspan=3)
+        menuAnterior.pack(fill=tk.X, padx=20, pady=20)
         menuAnterior.bind("<Return>", (lambda event: self.abrirGestionUsuarios()))
 
         users = db.trabajadorUsers.find({})
@@ -96,6 +97,8 @@ class User:
         labelLogo.pack(fill=tk.X, padx=20, pady=10)
 
 
+        ####### POR CONFIGURAR.
+
         # Inserción de ID, con un Entry para escribir
         etiqueta_id = tk.Label(frame_form_access, text="Inserte ID", font=('Times', 14), fg="#666a88", bg="#fcfcfc", anchor="w")
         etiqueta_id.pack(fill=tk.X, padx=20, pady=5)
@@ -107,6 +110,7 @@ class User:
         etiqueta_nombreUsuario.pack(fill=tk.X, padx=20, pady=5)
         self.nombreUsuario = ttk.Entry(frame_form_access, font=('Times', 14))
         self.nombreUsuario.pack(fill=tk.BOTH, padx=20, pady=10)
+    
 
         #Inserción de contraseña, con un Entry para escribir
         etiqueta_contrasena = tk.Label(frame_form_access, text="Inserte Contraseña", font=('Times', 14), fg="#666a88", bg="#fcfcfc", anchor="w")
@@ -114,6 +118,7 @@ class User:
         self.contra = ttk.Entry(frame_form_access, font=('Times', 14))
         self.contra.pack(fill=tk.BOTH, padx=20, pady=10)
         self.contra.config(show="*")
+        
 
         agregar = tk.Button(frame_form_access, text="Agregar Usuario", font=('Times', 14, BOLD), bg='#3a7ff6', bd=0, fg="#fff", command=self.botonAgregar)
         agregar.pack(fill=tk.X, padx=20, pady=20)
@@ -173,6 +178,7 @@ class User:
         etiqueta_contrasena.pack(fill=tk.X, padx=20, pady=5)
         self.modContrasena = ttk.Entry(frame_form_access, font=('Times', 14))
         self.modContrasena.pack(fill=tk.BOTH, padx=20, pady=10)
+        self.modContrasena.config(show="*")
         #boton modificar contraseña de usuario
         modContrasenaUsuario =  tk.Button(frame_form_access, text="Modificar Contraseña", font=('Times', 14, BOLD), bg='#3a7ff6', bd=0, fg="#fff", command=self.botonModificarContrasenaUsu)
         modContrasenaUsuario.pack(fill=tk.X, padx=20, pady=20)
@@ -300,19 +306,31 @@ class User:
         sal = bcrypt.gensalt()
         passw_hasheada = bcrypt.hashpw(passw, sal)
 
-        if idUser == "" or nomUsu == "" or passw == "":
-            messagebox.showerror(message="No puede insertar valores vacíos", title="Error")
-        else:
-            insertarUser  = db.trabajadorUsers.insert_one(
-            {
-                "_id": idUser,
-                "nombreUsuario": nomUsu,
-                "password": passw_hasheada
-            })
-            messagebox.showinfo(message="Usuario agregado correctamente", title="Felicidades")
-            
-            self.abrirAllUsuarios()
-            return insertarUser
+        tusers = db.trabajadorUsers.find({},{"nombreUsuario": 1, "_id": 0})
+        for user in tusers:
+            username = (str.format(user["nombreUsuario"]))
+
+            if idUser == "" or nomUsu == "" or passw == "":
+                messagebox.showerror(message="No puede insertar valores vacíos", title="Error")
+                return tusers
+            if nomUsu == username:
+                messagebox.showerror(message="El nombre de usuario se encuentra ocupado", title="Error")
+                return tusers
+            else:
+                if len(passw) < 4:
+                    messagebox.showerror(message="La contraseña debe contener al menos 4 caracteres.", title="Error")
+                    return
+                else: 
+                    insertarUser  = db.trabajadorUsers.insert_one(
+                    {
+                        "_id": idUser,
+                        "nombreUsuario": nomUsu,
+                        "password": passw_hasheada
+                    })
+                    messagebox.showinfo(message="Usuario agregado correctamente", title="Felicidades")
+                    
+                    self.abrirAllUsuarios()
+                    return insertarUser
 
 
         
@@ -353,23 +371,27 @@ class User:
             if idUser == itinid: 
                 if modPass == "":
                     messagebox.showerror(message="No puede insertar valores vacíos", title="Error")
+                    return itinerarios
                 else:
-                
-                    modPass = modPass.encode()
-                    sal = bcrypt.gensalt()
-                    passw_hasheada1 = bcrypt.hashpw(modPass, sal)
-                    moduser = db.trabajadorUsers.update_one(
-                        {"_id": {"$regex": idUser, "$options": "i"}},
-                        {
-                            '$set': {
-                                "password": passw_hasheada1
+                    if len(modPass) < 4:
+                        messagebox.showerror(message="La contraseña debe contener al menos 4 caracteres.", title="Error")
+                        return itinerarios
+                    else:
+                        modPass = modPass.encode()
+                        sal = bcrypt.gensalt()
+                        passw_hasheada1 = bcrypt.hashpw(modPass, sal)
+                        moduser = db.trabajadorUsers.update_one(
+                            {"_id": {"$regex": idUser, "$options": "i"}},
+                            {
+                                '$set': {
+                                    "password": passw_hasheada1
+                                }
                             }
-                        }
-                    )
-                    messagebox.showinfo(message="Contraseña Modificada Correctamente", title="Felicidades")
+                        )
+                        messagebox.showinfo(message="Contraseña Modificada Correctamente", title="Felicidades")
 
-                    self.abrirAllUsuarios()
-                    return moduser
+                        self.abrirAllUsuarios()
+                        return moduser
         else:
             messagebox.showinfo(message="El id del user no existe", title="Error")
 

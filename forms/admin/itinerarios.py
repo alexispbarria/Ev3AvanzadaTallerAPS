@@ -1,7 +1,7 @@
-from textwrap import fill
+
 import tkinter as tk
 from tkinter.font import BOLD
-from tkinter import ANCHOR, CENTER, W, ttk, messagebox
+from tkinter import ttk, messagebox
 import conexion
 import util.generic as utl
 from ..admin import form_admin as fa
@@ -171,6 +171,12 @@ class itinera:
         etiqueta_fechaVuelo.pack(fill=tk.X, padx=20, pady=5)
         self.fechaVueloBuscar = ttk.Entry(frame_form_access, font=('Times', 14))
         self.fechaVueloBuscar.pack(fill=tk.BOTH, padx=20, pady=10)
+        self.fechaVueloBuscar.insert(0, "Formato de fecha: DD-MM-AAA")
+        self.fechaVueloBuscar.configure(state=tk.DISABLED)
+        def on_click(event):
+            self.fechaVueloBuscar.configure(state=tk.NORMAL)
+            self.fechaVueloBuscar.delete(0, tk.END)
+        self.fechaVueloBuscar.bind("<Button-1>", on_click)
 
         buscarFechaVuelo =  tk.Button(frame_form_access, text="Buscar Vuelo", font=('Times', 14, BOLD), bg='#3a7ff6', bd=0, fg="#fff", command=self.botonBuscarFechaVuelo)
         buscarFechaVuelo.pack(fill=tk.X, padx=20, pady=20)
@@ -257,11 +263,6 @@ class itinera:
         self.horaVuelo = ttk.Entry(frame_form_access, font=('Times', 14))
         self.horaVuelo.pack(fill=tk.BOTH, padx=20, pady=10)
 
-        #Inserción del valor del tramo.
-        etiqueta_valorTramo = tk.Label(frame_form_access, text="Inserte valor del Tramo", font=('Times', 14), fg="#666a88", bg="#fcfcfc", anchor="w")
-        etiqueta_valorTramo.pack(fill=tk.X, padx=20, pady=5)
-        self.valorTramo = ttk.Entry(frame_form_access, font=('Times', 14))
-        self.valorTramo.pack(fill=tk.BOTH, padx=20, pady=10)
         
 
         agregar = tk.Button(frame_form_access, text="Agregar Itinerario", font=('Times', 14, BOLD), bg='#3a7ff6', bd=0, fg="#fff", command=self.botonAgregarItinerario)
@@ -523,7 +524,7 @@ class itinera:
     def botonBuscarCodigoVuelo(self):
         db = conexion.get_db()
         codVuelo = self.codVueloBuscar.get()
-        itinerarios = db.itinerarios.find({})
+        itinerarios = db.itinerarios.find({"_id": {"$regex": codVuelo, "$options": "i"}})
         for itin in itinerarios:
             itincod = (str.format(itin["_id"]))
             if codVuelo == itincod:
@@ -534,6 +535,7 @@ class itinera:
                             values = (itin["origen"], itin["destino"], itin["fechaIda"], itin["duracion"], itin["horaIda"], itin["valorTramo"], itin["disponibilidad"])
                                 
                             )
+                return itinerarios
         else:
             messagebox.showinfo(message="El codigo de vuelo no coincide", title="Error")
 
@@ -552,6 +554,7 @@ class itinera:
                             values = (itin["origen"], itin["destino"], itin["fechaIda"], itin["duracion"], itin["horaIda"], itin["valorTramo"], itin["disponibilidad"])
                                 
                             )
+                return itinerarios
         else:
             messagebox.showinfo(message="La fecha del vuelo no coincide", title="Error")
     
@@ -562,31 +565,42 @@ class itinera:
         destino = self.destinoVuelo.get()
         fechaVuelo = self.fechaIda.get()
         hora = self.horaVuelo.get()
-        valor = self.valorTramo.get()
+    
 
-        if idVuelo == "":
-            messagebox.showerror(message="Debe insertar un id de vuelo", title="Error")
-        else:
-            if origen == "" or destino == "" or fechaVuelo == "" or hora == "" or valor == "":
-                messagebox.showerror(message="No se pueden insertar valores vacíos", title="Error")
+        itinerarios = db.itinerarios.find({}, {"origen": 1, "fechaIda": 1, "_id": 0})
+        for itin in itinerarios:
+            itinfecha = (str.format(itin["fechaIda"]))
+            itinOrigen = (str.format(itin["origen"]))
+
+
+            if idVuelo == "":
+                messagebox.showerror(message="Debe insertar un id de vuelo", title="Error")
+                return itinerarios
+            if origen == itinOrigen and fechaVuelo == itinfecha:
+                    messagebox.showerror(message="Ya existe un vuelo en el origen y fecha ingresado.", title="Error")
+                    return itinerarios
             else:
 
-                insertarItin  = db.itinerarios.insert_one(
-                    {
-                        "_id": idVuelo,
-                        "origen": origen,
-                        "destino": destino,
-                        "fechaIda": fechaVuelo,
-                        "duracion": "15 minutos",
-                        "horaIda": hora,
-                        "valorTramo": valor,
-                        "disponibilidad": 8
-                    }
-                )
-                messagebox.showinfo(message="Itinerario Agregado Correctamente", title="Felicidades")
-                
-                self.abrirAllItinerarios()
-                return insertarItin
+                if origen == "" or destino == "" or fechaVuelo == "" or hora == "":
+                    messagebox.showerror(message="No se pueden insertar valores vacíos", title="Error")
+                    return itinerarios
+                else:
+                    insertarItin  = db.itinerarios.insert_one(
+                        {
+                            "_id": idVuelo,
+                            "origen": origen,
+                            "destino": destino,
+                            "fechaIda": fechaVuelo,
+                            "duracion": "15 minutos",
+                            "horaIda": hora,
+                            "valorTramo": "40.000",
+                            "disponibilidad": 8
+                        }
+                    )
+                    messagebox.showinfo(message="Itinerario Agregado Correctamente", title="Felicidades")
+                    
+                    self.abrirAllItinerarios()
+                    return insertarItin
 
 
     def botonModOrigen(self):
